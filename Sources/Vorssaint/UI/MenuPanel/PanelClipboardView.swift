@@ -4,6 +4,7 @@
 import SwiftUI
 
 struct PanelClipboardView: View {
+    @Environment(\.panelToolHeaderHidden) private var toolHeaderHidden   // Custom
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var history = ClipboardHistoryService.shared
     @AppStorage(DefaultsKey.clipboardHistoryEnabled) private var enabled = false
@@ -50,7 +51,7 @@ struct PanelClipboardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            header
+            if !toolHeaderHidden { header }   // Custom
             controls
             entriesList
         }
@@ -64,12 +65,12 @@ struct PanelClipboardView: View {
                 .font(.system(size: 12, weight: .semibold))
             Spacer()
             Button(action: onClose) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 14))
+                Image(systemName: "chevron.down")   // Custom: matches the dropdown arrows
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                     .frame(width: 22, height: 22)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(l10n.s.uninstallerCancel)
         }
     }

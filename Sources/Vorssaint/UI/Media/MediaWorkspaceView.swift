@@ -51,6 +51,7 @@ private enum MediaCompressionLevel: String, CaseIterable, Identifiable {
 }
 
 struct MediaWorkspaceView: View {
+    @Environment(\.panelToolHeaderHidden) private var toolHeaderHidden   // Custom
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var media: MediaService
     @ObservedObject private var featureRuntime = FeatureRuntime.shared
@@ -253,7 +254,7 @@ struct MediaWorkspaceView: View {
 
     private var workspaceContent: some View {
         VStack(alignment: .leading, spacing: compact ? 10 : 14) {
-            header
+            if !toolHeaderHidden { header }   // Custom
             toolPicker
             content.padding(.trailing, 1)
         }

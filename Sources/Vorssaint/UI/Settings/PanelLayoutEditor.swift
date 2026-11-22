@@ -132,6 +132,7 @@ private extension PanelSectionID {
         case .controls: return text.sectionControls
         case .toggles: return text.sectionToggles
         case .wallpaper: return FeatureStrings.wallpaper(L10n.shared.language).panelDescription
+        case .appSwitcher: return "Pause, size, previews and desktop popup for App Switcher"
         }
     }
 }
@@ -180,8 +181,7 @@ private struct PanelSectionRow: View {
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.tertiary)
                     .frame(width: 14)
-                Image(systemName: id.symbolName)
-                    .font(.system(size: 12, weight: .semibold))
+                PanelSectionIcon(id: id, size: 12)
                     .foregroundStyle(shown ? Color.accentColor : Color.secondary)
                     .frame(width: 26, height: 26)
                     .background((shown ? Color.accentColor : Color.secondary).opacity(0.12),
@@ -307,8 +307,7 @@ private struct MenuBarPanelMiniature: View {
                 Button {
                     onSelect(id)
                 } label: {
-                    Image(systemName: id.symbolName)
-                        .font(.system(size: 9, weight: .semibold))
+                    PanelSectionIcon(id: id, size: 9)
                         .frame(maxWidth: .infinity)
                         .frame(height: 20)
                         .contentShape(RoundedRectangle(cornerRadius: 5, style: .continuous))

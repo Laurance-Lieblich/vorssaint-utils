@@ -9,7 +9,7 @@ struct WallpaperThumbnailView: View {
     var height: CGFloat = 54
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 6, style: .continuous)
+        RoundedRectangle(cornerRadius: PanelRadius.small, style: .continuous)
             .fill(Color.secondary.opacity(0.15))
             .frame(maxWidth: .infinity)
             .frame(height: height)
@@ -25,6 +25,6 @@ struct WallpaperThumbnailView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: PanelRadius.small, style: .continuous))
     }
 }

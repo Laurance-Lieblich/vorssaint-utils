@@ -159,7 +159,7 @@ private struct TimeDigitWheel: View {
                 .monospacedDigit()
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 52, height: 36)
-                .background(RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .background(RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                     .fill(Color.accentColor.opacity(hovering ? 0.2 : 0.13)))
             neighbour(1)
         }

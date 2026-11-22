@@ -38,7 +38,7 @@ struct ProcessUsageRow: View {
                 } label: {
                     content
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
             } else {
                 content
             }

@@ -66,6 +66,7 @@ final class MenuPanelFocus: ObservableObject {
 /// Content of the menu bar popover: keep-awake controls, the volume mixer and
 /// the system monitor.
 struct MenuPanelView: View {
+    @Namespace private var tabNamespace   // Custom: sliding tab highlight
     var notchSize: CGSize? = nil
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var updates = UpdateService.shared
@@ -83,6 +84,7 @@ struct MenuPanelView: View {
     @AppStorage(DefaultsKey.brightnessControlEnabled) private var brightnessEnabled = false
     @AppStorage(DefaultsKey.panelShowUtilities) private var showUtilities = true
     @AppStorage(DefaultsKey.panelShowControls) private var showControls = true
+    @AppStorage(DefaultsKey.panelShowLaurAppSwitcher) private var showAppSwitcher = true
     @AppStorage(DefaultsKey.panelShowToggles) private var showToggles = true
     @AppStorage(DefaultsKey.panelShowWallpaper) private var showWallpaper = true
     @AppStorage(DefaultsKey.panelSectionOrder) private var sectionOrderRaw = ""
@@ -107,7 +109,7 @@ struct MenuPanelView: View {
         // visibleFrame - 28 left the popover window 2 pt short of the usable
         // height, which AppKit still treated as "doesn't fit below the icon" and
         // opened beside it (shifted far left). 64 pt keeps it safely under.
-        return max(360, ((anchored ?? NSScreen.withMenuBar)?.visibleFrame.height ?? 760) - 64)
+        return max(360, floor(((anchored ?? NSScreen.withMenuBar)?.visibleFrame.height ?? 760) - 64))
     }
 
     var body: some View {
@@ -150,16 +152,25 @@ struct MenuPanelView: View {
     }
 
     private var monitorNeeds: SystemMonitorPanelNeeds {
+        // Custom (Laurance): read every monitor section in the panel while it is
+        // open, not just the one on screen. Upstream started a section's readings
+        // only when its tab was opened, so its rows arrived a moment later and the
+        // panel resized a second time: the jump into Energy, Disks, etc. With the
+        // data already there, any tab switch, in any section order, resizes once.
+        var needs = SystemMonitorPanelNeeds()
+        for id in visibleSections {
+            switch id {
+            case .system: needs.system = true
+            case .network: needs.network = true
+            case .disk: needs.disk = true
+            case .power: needs.power = true; needs.powerCard = true
+            default: break
+            }
+        }
         if let selectedMetric {
-            return selectedMetric.monitorNeeds
+            return selectedMetric.monitorNeeds.merging(needs)
         }
-        switch activeSection {
-        case .system: return SystemMonitorPanelNeeds(system: true)
-        case .network: return SystemMonitorPanelNeeds(network: true)
-        case .disk: return SystemMonitorPanelNeeds(disk: true)
-        case .power: return SystemMonitorPanelNeeds(power: true, powerCard: true)
-        default: return .none
-        }
+        return needs
     }
 
     private func syncMonitorSampling() {
@@ -291,7 +302,8 @@ struct MenuPanelView: View {
         let bannerHeight = updates.state.showsMenuPanelBanner
             ? (max(updateBannerHeight, 48) + 12)
             : 0
-        return 180 + bannerHeight
+        // Custom: 180 minus the removed header (28 pt + 8 pt padding + 12 pt spacing).
+        return 132 + bannerHeight
     }
 
     private var estimatedNavigableContentHeight: CGFloat {
@@ -308,6 +320,7 @@ struct MenuPanelView: View {
         case .controls: return 360
         case .toggles: return 420
         case .wallpaper: return 480
+        case .appSwitcher: return 220
         }
     }
 
@@ -333,9 +346,17 @@ struct MenuPanelView: View {
         case .mixer: if showMixer { mixerOrPrioritySection(collapsible: collapsible) }
         case .system:
             if showSystem {
-                SystemSection(collapsible: collapsible) {
-                    focusedSection = nil
-                    selectedMetric = .connectedDevices
+                // Custom: fan control lives inside the System section. It only
+                // falls back to its own section when System is hidden.
+                VStack(alignment: .leading, spacing: 12) {
+                    SystemSection(collapsible: collapsible) {
+                        focusedSection = nil
+                        selectedMetric = .connectedDevices
+                    }
+                    if showFanControl, PanelLayout.isVisibleInPanel(.fanControl),
+                       notchSize != nil || panelFocus.popoverIsVisible {
+                        FanControlSection(collapsible: collapsible, embedded: true)
+                    }
                 }
             }
         case .network: if showNetwork { NetworkSection(collapsible: collapsible) }
@@ -351,6 +372,7 @@ struct MenuPanelView: View {
         case .controls: QuickControlsSection(collapsible: collapsible)
         case .toggles: QuickTogglesSection(collapsible: collapsible)
         case .wallpaper: if showWallpaper { WallpaperSection(collapsible: collapsible) }
+        case .appSwitcher: if showAppSwitcher { AppSwitcherPanelSection(collapsible: collapsible) }
         }
     }
 
@@ -368,7 +390,10 @@ struct MenuPanelView: View {
     /// what keeps the tabs refreshing when Settings flips one of them.
     private func isSectionVisible(_ id: PanelSectionID) -> Bool {
         _ = (showKeepAwake, showBrightness, brightnessEnabled, showMixer, showSystem, showNetwork,
-             showDisk, showPower, showFanControl, showUtilities, showControls, showToggles, showWallpaper)
+             showDisk, showPower, showFanControl, showUtilities, showControls, showToggles, showWallpaper,
+             showAppSwitcher)
+        // Custom: no separate Fan Control tab while it is shown inside System.
+        if id == .fanControl, showSystem, PanelLayout.isVisibleInPanel(.system) { return false }
         return PanelLayout.isVisibleInPanel(id)
     }
 
@@ -380,19 +405,22 @@ struct MenuPanelView: View {
                     selectedSection = id
                     focusedSection = id
                 } label: {
-                    Image(systemName: id.symbolName)
-                        .font(.system(size: 13.5, weight: .semibold))
+                    PanelSectionIcon(id: id, size: 13.5)
                         .frame(maxWidth: .infinity)
                         .frame(height: 30)
-                        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .contentShape(RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .focused($focusedSection, equals: id)
                 .foregroundStyle(isActive ? (notchSize != nil ? Color.white : Color.accentColor) : Color.secondary.opacity(0.86))
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isActive ? navigationActiveFill : Color.clear)
-                )
+                // Custom: one selection highlight that slides between tabs.
+                .background {
+                    if isActive {
+                        RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
+                            .fill(navigationActiveFill)
+                            .matchedGeometryEffect(id: "activeTab", in: tabNamespace)
+                    }
+                }
                 .help(id.title(l10n.s))
                 // Icon-only tabs: VoiceOver reads the section name, not the
                 // symbol's, and hears which one is showing.
@@ -400,14 +428,15 @@ struct MenuPanelView: View {
                 .accessibilityAddTraits(isActive ? .isSelected : [])
             }
         }
+        .animation(PanelMotion.snappy, value: activeSection)   // Custom: slides the highlight only
         .padding(4)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: PanelRadius.control + 4, style: .continuous)
                 .fill(notchSize != nil ? .black : PanelSurface.cardFill(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(PanelSurface.border(for: colorScheme), lineWidth: 0.7)
+            RoundedRectangle(cornerRadius: PanelRadius.control + 4, style: .continuous)
+                .strokeBorder(PanelSurface.border(for: colorScheme), lineWidth: 0.5)
         )
     }
 
@@ -426,16 +455,16 @@ struct MenuPanelView: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 11, weight: .semibold))
                     .frame(width: 24, height: 24)
-                    .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .foregroundStyle(.secondary)
             .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                     .fill(PanelSurface.cardFill(for: colorScheme))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                     .strokeBorder(PanelSurface.border(for: colorScheme), lineWidth: 0.7)
             )
 
@@ -455,8 +484,10 @@ struct MenuPanelView: View {
         CleaningModeManager.shared.activate()
     }
 
+    // Custom: the brand-mark header (logo, plus beta badge/feedback on betas)
+    // is removed from the panel. EmptyView takes no space or stack spacing.
     private var header: some View {
-        MenuPanelHeader()
+        EmptyView()
     }
 
     private var footer: some View {
@@ -493,17 +524,18 @@ struct MenuPanelView: View {
                 .labelStyle(.titleAndIcon)
                 .padding(.horizontal, horizontalPadding)
                 .frame(maxWidth: .infinity, minHeight: 28)
+                .panelHover()   // Custom
                 .background(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                         .fill(notchSize != nil ? .black : PanelSurface.cardFill(for: colorScheme))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .strokeBorder(PanelSurface.border(for: colorScheme), lineWidth: 0.8)
+                    RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
+                        .strokeBorder(PanelSurface.border(for: colorScheme), lineWidth: 0.5)
                 )
-                .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())   // Custom
         .foregroundStyle(.secondary)
     }
 }
@@ -539,7 +571,7 @@ private struct MenuPanelHeader: View {
                             .padding(4)
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PanelPressStyle())
                     .help(FeatureStrings.feedback(l10n.language).openButton)
                 }
             }
@@ -634,51 +666,51 @@ struct UtilitiesSection: View {
                      supportsEditing: true,
                      editButtonVisible: !isHostingUtility,
                      resetAction: resetPanelDefaults) { editing in
+            // Custom (Laurance): every tool opens like a dropdown under one shared
+            // header (its own row, arrow pointing down). Clicking the header closes
+            // it and brings the list back. The tools' own headers are hidden.
             if showUninstaller {
-                PanelUninstallerView {
-                    showUninstaller = false
+                hostedTool(l10n.s.uninstallerName, "trash", close: closeUninstaller) {
+                    PanelUninstallerView(onClose: closeUninstaller)
                 }
             } else if showCleanerPanel {
-                PanelCleanerView {
-                    showCleanerPanel = false
+                hostedTool(l10n.s.cleanerName, "sparkle", close: closeCleaner) {
+                    PanelCleanerView(onClose: closeCleaner)
                 }
             } else if showURLCleaner {
-                PanelURLCleanerView {
-                    showURLCleaner = false
+                hostedTool(l10n.s.urlCleanerName, "link", close: { showURLCleaner = false }) {
+                    PanelURLCleanerView { showURLCleaner = false }
                 }
             } else if showHomebrewPanel {
-                PanelHomebrewView {
-                    showHomebrewPanel = false
+                hostedTool(l10n.s.homebrewName, "shippingbox", close: { showHomebrewPanel = false }) {
+                    PanelHomebrewView { showHomebrewPanel = false }
                 }
             } else if showMediaPanel {
-                PanelMediaView {
-                    PanelInteractionState.shared.viewKeepsPopoverOpen = false
-                    showMediaPanel = false
+                hostedTool(l10n.s.mediaName, "photo.on.rectangle.angled", close: closeMedia) {
+                    PanelMediaView(onClose: closeMedia)
                 }
             } else if showClipboardPanel {
-                PanelClipboardView {
-                    PanelInteractionState.shared.viewKeepsPopoverOpen = false
-                    showClipboardPanel = false
+                hostedTool(FeatureStrings.clipboard(l10n.language).title, "doc.on.clipboard", close: closeClipboard) {
+                    PanelClipboardView(onClose: closeClipboard)
                 }
             } else if showRecentCapturesPanel {
-                PanelRecentCapturesView {
-                    PanelInteractionState.shared.viewKeepsPopoverOpen = false
-                    showRecentCapturesPanel = false
+                hostedTool(FeatureStrings.recentCaptures(l10n.language).title, "clock.arrow.circlepath",
+                           close: closeRecentCaptures) {
+                    PanelRecentCapturesView(onClose: closeRecentCaptures)
                 }
             } else if showWindowLayoutPanel {
-                PanelWindowLayoutView {
-                    PanelInteractionState.shared.viewKeepsPopoverOpen = false
-                    showWindowLayoutPanel = false
+                hostedTool(FeatureStrings.windowLayout(l10n.language).title, "rectangle.3.group",
+                           close: closeWindowLayout) {
+                    PanelWindowLayoutView(onClose: closeWindowLayout)
                 }
             } else if showAppUpdatesPanel {
-                PanelAppUpdatesView {
-                    PanelInteractionState.shared.viewKeepsPopoverOpen = false
-                    showAppUpdatesPanel = false
+                hostedTool(FeatureStrings.appUpdates(l10n.language).pageTitle, "arrow.down.app",
+                           close: closeAppUpdates) {
+                    PanelAppUpdatesView(onClose: closeAppUpdates)
                 }
             } else if showPortManagerPanel {
-                PanelPortManagerView {
-                    PanelInteractionState.shared.viewKeepsPopoverOpen = false
-                    showPortManagerPanel = false
+                hostedTool(FeatureStrings.portManager(l10n.language).title, "network", close: closePortManager) {
+                    PanelPortManagerView(onClose: closePortManager)
                 }
             } else {
                 PanelRowGroup(items: items(editing: editing), showsDragHandles: editing) { item in
@@ -704,6 +736,60 @@ struct UtilitiesSection: View {
             PanelInteractionState.shared.viewKeepsPopoverOpen = false
             PanelInteractionState.shared.hostedSettingsPage = nil
         }
+    }
+
+    // MARK: Custom (Laurance): shared dropdown header for opened tools
+
+    @ViewBuilder
+    private func hostedTool<Tool: View>(_ title: String, _ systemImage: String,
+                                        close: @escaping () -> Void,
+                                        @ViewBuilder tool: () -> Tool) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            OpenToolHeader(title: title, systemImage: systemImage, close: close)
+            tool()
+                .environment(\.panelToolHeaderHidden, true)
+        }
+    }
+
+    private func closeUninstaller() {
+        // Same as the tool's own close: a scan left running is cancelled.
+        if AppUninstaller.shared.phase == .scanning { AppUninstaller.shared.reset() }
+        showUninstaller = false
+    }
+
+    private func closeCleaner() {
+        if JunkCleaner.shared.phase == .scanning { JunkCleaner.shared.reset() }
+        showCleanerPanel = false
+    }
+
+    private func closeMedia() {
+        PanelInteractionState.shared.viewKeepsPopoverOpen = false
+        showMediaPanel = false
+    }
+
+    private func closeClipboard() {
+        PanelInteractionState.shared.viewKeepsPopoverOpen = false
+        showClipboardPanel = false
+    }
+
+    private func closeRecentCaptures() {
+        PanelInteractionState.shared.viewKeepsPopoverOpen = false
+        showRecentCapturesPanel = false
+    }
+
+    private func closeWindowLayout() {
+        PanelInteractionState.shared.viewKeepsPopoverOpen = false
+        showWindowLayoutPanel = false
+    }
+
+    private func closeAppUpdates() {
+        PanelInteractionState.shared.viewKeepsPopoverOpen = false
+        showAppUpdatesPanel = false
+    }
+
+    private func closePortManager() {
+        PanelInteractionState.shared.viewKeepsPopoverOpen = false
+        showPortManagerPanel = false
     }
 
     /// The Settings page that belongs to whichever tool the section is
@@ -1314,7 +1400,7 @@ struct QuickControlsSection: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())
         .disabled(editing)
     }
 
@@ -2074,6 +2160,43 @@ struct QuickControlsSection: View {
 
 // Internal (not private): the quick toggles tab builds its rows from the same
 // component, so every action row in the panel looks and behaves the same.
+/// Custom (Laurance): the header of a tool opened in the Utilities section:
+/// the tool's own row in a card, with the dropdown arrow pointing down. The
+/// whole row closes the tool, like collapsing any other dropdown.
+private struct OpenToolHeader: View {
+    let title: String
+    let systemImage: String
+    let close: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: close) {
+            HStack(spacing: PanelRowMetrics.iconSpacing) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: PanelRowMetrics.iconWidth)
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(90))
+            }
+            .panelRowInsets()
+            .background(PanelRowHighlight(isVisible: hovering))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PanelPressStyle())
+        .onHover { hovering = $0 }
+        .panelCard(interactive: true, padded: false)
+        .accessibilityLabel(title)
+        .accessibilityHint("Closes \(title) and shows all utilities")
+    }
+}
+
 struct UtilityActionButton: View {
     let title: String
     let caption: String
@@ -2127,7 +2250,7 @@ struct UtilityActionButton: View {
                         .background(PanelRowHighlight(isVisible: hovering))
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
                 .onHover { hovering = $0 }
             }
         }
@@ -2147,7 +2270,7 @@ struct UtilityActionButton: View {
             rowContent(showChevron: true)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())
     }
 
     @ViewBuilder
@@ -2543,7 +2666,7 @@ private struct OverlayScrollView<Content: View>: NSViewRepresentable {
         guard let host = context.coordinator.host else { return }
         host.rootView = content
         installReporter(on: host)               // re-bind to the latest measuredHeight
-        let h = host.fittingSize.height          // catch content changes with no new layout pass
+        let h = ceil(host.fittingSize.height)    // catch content changes with no new layout pass (Custom: whole points, so the panel never shifts by a fraction)
         if h > 1, abs(h - measuredHeight) > 0.5 {
             DispatchQueue.main.async { measuredHeight = h }
         }
@@ -2558,7 +2681,7 @@ private struct OverlayScrollView<Content: View>: NSViewRepresentable {
         let binding = $measuredHeight
         host.onLayout = { [weak host] in
             guard let host else { return }
-            let h = host.fittingSize.height
+            let h = ceil(host.fittingSize.height)   // Custom: whole points
             guard h > 1, abs(h - binding.wrappedValue) > 0.5 else { return }
             DispatchQueue.main.async { binding.wrappedValue = h }
         }
@@ -2673,7 +2796,7 @@ struct UpdateBanner: View {
                         .fill(tintColor)
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
         case let .downloading(progress):
             progressRow(l10n.s.updateDownloading, fraction: progress)
         case .installing:
@@ -2845,7 +2968,8 @@ struct KeepAwakeCard: View {
                 optionsExpanded.toggle()
             } label: {
                 HStack(spacing: 7) {
-                    Image(systemName: optionsExpanded ? "chevron.down" : "chevron.right")
+                    Image(systemName: "chevron.right").rotationEffect(.degrees(optionsExpanded ? 90 : 0))
+                .animation(PanelMotion.snappy, value: optionsExpanded)   // Custom
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.secondary)
                         .frame(width: 12)
@@ -2856,7 +2980,7 @@ struct KeepAwakeCard: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
 
             if optionsExpanded {
                 VStack(alignment: .leading, spacing: 8) {
@@ -2912,13 +3036,14 @@ struct KeepAwakeCard: View {
                         .lineLimit(1)
                     Spacer(minLength: 6)
                     automationSummaryBadges
-                    Image(systemName: automationExpanded ? "chevron.down" : "chevron.right")
+                    Image(systemName: "chevron.right").rotationEffect(.degrees(automationExpanded ? 90 : 0))
+                .animation(PanelMotion.snappy, value: automationExpanded)   // Custom
                         .font(.system(size: 8.5, weight: .bold))
                         .foregroundStyle(.tertiary)
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
 
             if automationExpanded {
                 VStack(alignment: .leading, spacing: 8) {

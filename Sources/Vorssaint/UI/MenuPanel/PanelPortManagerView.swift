@@ -4,6 +4,7 @@
 import SwiftUI
 
 struct PanelPortManagerView: View {
+    @Environment(\.panelToolHeaderHidden) private var toolHeaderHidden   // Custom
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var service = PortManagerService.shared
     @Environment(\.notchPresentation) private var inNotch
@@ -16,7 +17,7 @@ struct PanelPortManagerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            header
+            if !toolHeaderHidden { header }   // Custom
             controls
             if service.refreshFailed {
                 Label(strings.loadFailed, systemImage: "exclamationmark.triangle")
@@ -60,16 +61,16 @@ struct PanelPortManagerView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 22, height: 22)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(l10n.s.menuSettings)
             .accessibilityLabel(l10n.s.menuSettings)
             Button(action: onClose) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 14))
+                Image(systemName: "chevron.down")   // Custom: matches the dropdown arrows
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                     .frame(width: 22, height: 22)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(l10n.s.uninstallerCancel)
         }
     }
@@ -200,7 +201,7 @@ struct PanelPortManagerView: View {
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 6)
-        .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 6))
+        .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: PanelRadius.small))
         .contentShape(Rectangle())
         .contextMenu {
             PortManagerRowActions(entry: entry, language: l10n.language)

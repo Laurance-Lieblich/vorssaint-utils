@@ -153,14 +153,14 @@ struct WallpaperSection: View {
                                 .foregroundStyle(.white, .red)
                                 .font(.system(size: 14))
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PanelPressStyle())
                         .help(text.removeAdded)
                         .accessibilityLabel(text.removeAdded)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
                     .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                             .fill(Color.secondary.opacity(0.15))
                     )
                 }
@@ -268,7 +268,7 @@ struct WallpaperSection: View {
             Button(text.openSystemSettings) {
                 service.openSystemWallpaperSettings()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .font(.caption)
             .foregroundStyle(.secondary)
             .lineLimit(1)
@@ -308,11 +308,11 @@ private struct WallpaperThumbButton: View {
             Button(action: action) {
                 WallpaperThumbnailView(image: image, height: height)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: PanelRadius.small, style: .continuous)
                             .strokeBorder(isApplied ? Color.accentColor : Color.clear, lineWidth: 2)
                     )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .disabled(!appliesEnabled)
             .help(entry.title)
             .accessibilityLabel(entry.title)
@@ -325,7 +325,7 @@ private struct WallpaperThumbButton: View {
                         .font(.system(size: 16))
                         .shadow(color: .black.opacity(0.35), radius: 1, y: 1)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
                 .offset(x: 4, y: -4)
                 .help(removeLabel)
                 .accessibilityLabel(removeLabel)

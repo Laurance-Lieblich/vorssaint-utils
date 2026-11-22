@@ -62,7 +62,7 @@ struct FanControlCurveEditor: View {
                     } label: {
                         Image(systemName: "minus.circle")
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PanelPressStyle())
                     .foregroundStyle(.secondary)
                     .help(strings.removeSensor)
                     .accessibilityLabel(strings.removeSensor)
@@ -141,7 +141,7 @@ struct FanControlCurveEditor: View {
                 Image(systemName: "xmark")
                     .font(.system(size: 8, weight: .bold))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .foregroundStyle(.secondary)
             .frame(width: 16)
             .help(strings.removePoint)
@@ -240,7 +240,7 @@ private struct FanControlCurveGraph: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                     .fill(Color.primary.opacity(0.035))
 
                 ForEach(0..<5, id: \.self) { index in

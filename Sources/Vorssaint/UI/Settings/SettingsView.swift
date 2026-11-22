@@ -165,6 +165,8 @@ struct SettingsView: View {
                 detail
                     .settingsSectionFocus(for: router.page)
                     .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
+                    .settingsPageEntrance()   // Custom: pages settle in when switching
+                    .id(router.page)
             }
         }
         .navigationSplitViewStyle(.balanced)
@@ -355,7 +357,13 @@ struct SettingsView: View {
                 if !collapsedSectionIDs.contains(section.id) {
                     ForEach(section.items) { item in
                         HStack(spacing: 9) {
-                            Image(systemName: item.icon)
+                            Group {
+                                if item.id == .page(.laurAppSwitcher) {
+                                    AppSwitcherGlyph(size: 12)   // ~17 pt wide: fits the 18 pt icon column
+                                } else {
+                                    Image(systemName: item.icon)
+                                }
+                            }
                                 .foregroundStyle(selectedID == item.id
                                     ? AnyShapeStyle(.primary) : AnyShapeStyle(.tint))
                                 .frame(width: 18)
@@ -589,6 +597,7 @@ struct SettingsView: View {
         case .textSnippets: TextSnippetsSettings()
         case .notch: NotchSettings()
         case .notchMascot: NotchMascotSettings()
+        case .laurAppSwitcher: AppSwitcherLinkSettings()
         case .radialMenu: RadialMenuSettings()
         case .commandBar: CommandBarSettings()
         case .energy: EnergySettings(focus: router.destination.sectionAnchor)

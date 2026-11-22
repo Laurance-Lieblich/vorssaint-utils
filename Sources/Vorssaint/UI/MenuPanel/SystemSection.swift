@@ -192,7 +192,7 @@ struct SystemSection: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .accessibilityLabel(strings.title)
             .accessibilityValue(strings.formattedCount(monitor.snapshot.connectedDevices.count))
         }
@@ -351,7 +351,7 @@ struct SystemSection: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                 .fill(Color.primary.opacity(0.045))
         )
     }
@@ -396,12 +396,13 @@ struct SystemSection: View {
                                 .font(.system(size: 8, weight: .semibold))
                                 .foregroundStyle(.secondary)
                                 .rotationEffect(.degrees(cpuAppsExpanded ? 90 : 0))
+                .animation(PanelMotion.snappy, value: cpuAppsExpanded)   // Custom
                             subsectionLabel(FeatureStrings.cpuCores(l10n.language).apps)
                             Spacer(minLength: 0)
                         }
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PanelPressStyle())
                 }
                 if !sysCPUCores || cpuAppsExpanded {
                     breakdownList(for: .cpu)
@@ -476,7 +477,7 @@ struct SystemSection: View {
                     }
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
             }
         }
     }
@@ -489,6 +490,7 @@ struct SystemSection: View {
                 .font(.system(size: 8, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .rotationEffect(.degrees(expanded == kind ? 90 : 0))
+                .animation(PanelMotion.snappy, value: expanded == kind)   // Custom
                 .opacity(isInteractive ? 1 : 0.35)
             Text(label)
                 .font(.system(size: 11))
@@ -531,7 +533,7 @@ struct SystemSection: View {
                         memoryRowContent(isInteractive: true)
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PanelPressStyle())
                 }
                 memorySecondaryRow(l10n.s.memoryCompressed, monitor.snapshot.memoryCompressed)
                 memorySecondaryRow(l10n.s.memoryCachedFiles, monitor.snapshot.memoryCached)
@@ -573,6 +575,7 @@ struct SystemSection: View {
                 .font(.system(size: 8, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .rotationEffect(.degrees(expanded == .memory ? 90 : 0))
+                .animation(PanelMotion.snappy, value: expanded == .memory)   // Custom
                 .opacity(isInteractive ? 1 : 0.35)
             Text(l10n.s.memoryPressure)
                 .font(.system(size: 11))
@@ -613,12 +616,13 @@ struct SystemSection: View {
                                 .font(.system(size: 8, weight: .semibold))
                                 .foregroundStyle(.secondary)
                                 .rotationEffect(.degrees(alertsExpanded ? 90 : 0))
+                .animation(PanelMotion.snappy, value: alertsExpanded)   // Custom
                             subsectionLabel(text.section)
                             Spacer(minLength: 0)
                         }
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PanelPressStyle())
                     if editing {
                         PanelInlineHideButton(isVisible: $sysAlerts)
                     }

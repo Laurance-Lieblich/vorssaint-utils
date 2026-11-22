@@ -136,7 +136,7 @@ struct ActivityMonitorButton: View {
                 .background(Circle().fill(Color.primary.opacity(isHovered ? 0.1 : 0)))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())
         .onHover { isHovered = $0 }
         .help(l10n.s.monitorOpenActivityMonitor)
         .accessibilityLabel(l10n.s.monitorOpenActivityMonitor)

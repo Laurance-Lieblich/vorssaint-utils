@@ -16,33 +16,111 @@ enum Theme {
     )
 }
 
+/// Custom (Laurance): Apple's own adaptive system colors in both appearances,
+/// as Control Center and System Settings use, instead of hand-darkened tints
+/// in light mode.
 enum PanelMetricColor {
-    static func green(for scheme: ColorScheme) -> Color {
-        scheme == .light ? Color(red: 0.00, green: 0.44, blue: 0.18) : .green
+    static func green(for scheme: ColorScheme) -> Color { Color(nsColor: .systemGreen) }
+    static func cyan(for scheme: ColorScheme) -> Color { Color(nsColor: .systemCyan) }
+    static func mint(for scheme: ColorScheme) -> Color { Color(nsColor: .systemMint) }
+    static func yellow(for scheme: ColorScheme) -> Color { Color(nsColor: .systemYellow) }
+    static func red(for scheme: ColorScheme) -> Color { Color(nsColor: .systemRed) }
+    static func orange(for scheme: ColorScheme) -> Color { Color(nsColor: .systemOrange) }
+    static func pink(for scheme: ColorScheme) -> Color { Color(nsColor: .systemPink) }
+}
+
+/// Custom (Laurance): one set of corner radii for the whole panel, rounder and
+/// closer to macOS 26 Control Center modules. Change these to restyle everything.
+enum PanelRadius {
+    /// Section cards.
+    static let card: CGFloat = 16
+    /// Buttons, tabs, list rows, inputs.
+    static let control: CGFloat = 10
+    /// Small chips, badges and icon wells.
+    static let small: CGFloat = 8
+}
+
+/// Custom (Laurance): the shared motion curve. Quick and springy like the
+/// system's own controls, never floaty.
+enum PanelMotion {
+    static let snappy = Animation.snappy(duration: 0.24, extraBounce: 0.02)
+}
+
+/// Custom (Laurance): Apple-style press feedback for every panel button: a
+/// slight shrink and dim while pressed, springing back on release. Hovering
+/// leaves text untouched (no brightening or weight change); hover feedback
+/// comes only from background fills such as `.panelHover()`.
+struct PanelPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .animation(PanelMotion.snappy, value: configuration.isPressed)
+    }
+}
+
+/// Custom (Laurance): a soft fill that fades in under the pointer, like
+/// toolbar and Control Center buttons.
+private struct PanelHoverModifier: ViewModifier {
+    var cornerRadius: CGFloat
+    @State private var hovering = false
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.primary.opacity(hovering ? (colorScheme == .light ? 0.06 : 0.09) : 0))
+            )
+            .onHover { inside in
+                withAnimation(.easeOut(duration: 0.12)) { hovering = inside }
+            }
+    }
+}
+
+/// Custom (Laurance): content that fades in quickly when it first appears.
+/// Used when switching panel tabs, so the new section is never seen for the
+/// split second before the panel has resized to fit it.
+private struct PanelFadeInModifier: ViewModifier {
+    @State private var visible = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(visible ? 1 : 0)
+            .onAppear {
+                DispatchQueue.main.async {
+                    withAnimation(.easeOut(duration: 0.14)) { visible = true }
+                }
+            }
+    }
+}
+
+/// Custom (Laurance): a Settings page settling into place: a quick fade with
+/// a few points of upward drift, like System Settings switching panes.
+private struct SettingsPageEntranceModifier: ViewModifier {
+    @State private var shown = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown ? 0 : 6)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.2)) { shown = true }
+            }
+    }
+}
+
+extension View {
+    func panelFadeIn() -> some View {
+        modifier(PanelFadeInModifier())
     }
 
-    static func cyan(for scheme: ColorScheme) -> Color {
-        scheme == .light ? Color(red: 0.00, green: 0.43, blue: 0.54) : .cyan
+    func settingsPageEntrance() -> some View {
+        modifier(SettingsPageEntranceModifier())
     }
 
-    static func mint(for scheme: ColorScheme) -> Color {
-        scheme == .light ? Color(red: 0.00, green: 0.44, blue: 0.40) : .mint
-    }
-
-    static func yellow(for scheme: ColorScheme) -> Color {
-        scheme == .light ? Color(red: 0.56, green: 0.36, blue: 0.00) : .yellow
-    }
-
-    static func red(for scheme: ColorScheme) -> Color {
-        scheme == .light ? Color(red: 0.68, green: 0.08, blue: 0.10) : .red
-    }
-
-    static func orange(for scheme: ColorScheme) -> Color {
-        scheme == .light ? Color(red: 0.68, green: 0.30, blue: 0.00) : .orange
-    }
-
-    static func pink(for scheme: ColorScheme) -> Color {
-        scheme == .light ? Color(red: 0.68, green: 0.06, blue: 0.34) : .pink
+    func panelHover(cornerRadius: CGFloat = PanelRadius.control) -> some View {
+        modifier(PanelHoverModifier(cornerRadius: cornerRadius))
     }
 }
 
@@ -65,7 +143,11 @@ enum PanelSurface {
     /// lower-left corner: the popover grows by that safe area, the panel sits off
     /// center, and a band of system material shows along the top and right edges.
     static var popoverHostsFullSizeContent: Bool {
-        if #available(macOS 26.0, *) { return true }
+        // Custom (Laurance): the full-size layout showed the same off-center
+        // panel described above on Laurance's macOS 26 Mac too (panel pushed to
+        // the lower left, a grey band along the top and right). Use the inset
+        // layout everywhere: the panel sits centered on the popover's own
+        // native material, which is also the most Apple-like look.
         return false
     }
 
@@ -74,7 +156,8 @@ enum PanelSurface {
     }
 
     static func cardFill(for scheme: ColorScheme) -> Color {
-        scheme == .light ? Color.white.opacity(0.38) : Color.white.opacity(0.075)
+        // Custom (Laurance): a touch more body, like Control Center modules.
+        scheme == .light ? Color.white.opacity(0.55) : Color.white.opacity(0.08)
     }
 
     static func controlFill(for scheme: ColorScheme) -> Color {
@@ -87,9 +170,10 @@ enum PanelSurface {
     /// which is when a change to this setting shows.
     static func border(for scheme: ColorScheme) -> Color {
         let raised = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+        // Custom (Laurance): softer hairlines; Apple's modules barely outline.
         return scheme == .light
-            ? Color.black.opacity(raised ? 0.24 : 0.09)
-            : Color.white.opacity(raised ? 0.28 : 0.11)
+            ? Color.black.opacity(raised ? 0.24 : 0.06)
+            : Color.white.opacity(raised ? 0.28 : 0.08)
     }
 
     /// A control that sits ON a glass surface rather than in it: the system's
@@ -118,6 +202,14 @@ enum PanelSurface {
                        startPoint: .top,
                        endPoint: .bottom)
     }
+}
+
+/// Custom (Laurance): panel section headers in Apple's current style:
+/// sentence case, semibold, no letter-spaced capitals.
+func panelSectionTitle(_ text: String) -> some View {
+    Text(text)
+        .font(.system(size: 12.5, weight: .semibold))
+        .foregroundStyle(Color.primary.opacity(0.85))
 }
 
 func sectionTitle(_ text: String) -> some View {
@@ -155,12 +247,12 @@ private struct PanelCardModifier: ViewModifier {
         content
             .padding(padded ? 10 : 0)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: PanelRadius.card, style: .continuous)
                     .fill(PanelSurface.cardFill(for: colorScheme))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(PanelSurface.border(for: colorScheme), lineWidth: 0.7)
+                RoundedRectangle(cornerRadius: PanelRadius.card, style: .continuous)
+                    .strokeBorder(PanelSurface.border(for: colorScheme), lineWidth: 0.5)
             )
         }
     }

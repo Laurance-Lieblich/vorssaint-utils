@@ -12,6 +12,8 @@ protocol PanelOrderItem: RawRepresentable, CaseIterable, Hashable where RawValue
 enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
     case keepAwake, brightness, mixer, system, network, disk, power, fanControl, utilities, controls,
          toggles, wallpaper
+    /// Custom (Laurance): controls for the separate App Switcher app.
+    case appSwitcher = "laurAppSwitcher"
 
     var id: String { rawValue }
 
@@ -30,6 +32,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .controls: return s.quickControlsSection
         case .toggles: return FeatureStrings.quickToggles(L10n.shared.language).pageTitle
         case .wallpaper: return FeatureStrings.wallpaper(L10n.shared.language).pageTitle
+        case .appSwitcher: return "App Switcher"
         }
     }
 
@@ -47,6 +50,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .controls: return "switch.2"
         case .toggles: return "togglepower"
         case .wallpaper: return "photo.on.rectangle"
+        case .appSwitcher: return "rectangle.3.group"   // fallback; PanelSectionIcon draws the real mark
         }
     }
 
@@ -67,6 +71,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .controls: return DefaultsKey.panelShowControls
         case .toggles: return DefaultsKey.panelShowToggles
         case .wallpaper: return DefaultsKey.panelShowWallpaper
+        case .appSwitcher: return DefaultsKey.panelShowLaurAppSwitcher
         }
     }
 
@@ -98,10 +103,14 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
                                 .middleClick, .textSnippets, .superKey, .radialMenu, .mouseClickDebounce, .notch]
         case .toggles: return [.quickToggles, .micMute, .quitApps]
         case .wallpaper: return [.wallpaper]
+        case .appSwitcher: return []
         }
     }
 
-    var isAvailable: Bool { featureGate.contains(where: \.isAvailable) }
+    var isAvailable: Bool {
+        if self == .appSwitcher { return AppSwitcherLink.shared.isInstalled }
+        return featureGate.contains(where: \.isAvailable)
+    }
 }
 
 /// Persisted panel layout: the order the sections appear in and which ones are
@@ -252,15 +261,15 @@ struct PanelSection<Content: View>: View {
             if collapsible {
                 Button(action: toggle) {
                     HStack(spacing: 6) {
-                        sectionTitle(title)
+                        panelSectionTitle(title)
                         Spacer(minLength: 0)
                         collapseIcon
                     }
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
             } else {
-                sectionTitle(title)
+                panelSectionTitle(title)
                 Spacer(minLength: 0)
             }
             if supportsEditing {
@@ -283,6 +292,7 @@ struct PanelSection<Content: View>: View {
             .font(.system(size: 9, weight: .semibold))
             .foregroundStyle(.tertiary)
             .rotationEffect(.degrees(collapsed ? 0 : 90))
+                .animation(PanelMotion.snappy, value: collapsed)   // Custom
     }
 
     private var editButton: some View {
@@ -293,18 +303,18 @@ struct PanelSection<Content: View>: View {
                     .labelStyle(.titleAndIcon)
                     .padding(.horizontal, 8)
                     .frame(height: 24)
-                    .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous))
             } else {
                 Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 11, weight: .semibold))
                     .frame(width: 22, height: 18)
-                    .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: PanelRadius.small, style: .continuous))
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())
         .foregroundStyle(isEditing ? Color.white : Color.secondary)
         .background(
-            RoundedRectangle(cornerRadius: isEditing ? 8 : 6, style: .continuous)
+            RoundedRectangle(cornerRadius: isEditing ? PanelRadius.control : PanelRadius.small, style: .continuous)
                 .fill(isEditing ? Color.accentColor : Color.clear)
         )
         .help(isEditing ? l10n.s.uninstallerDoneTitle : l10n.s.menuEdit)
@@ -317,12 +327,12 @@ struct PanelSection<Content: View>: View {
             Image(systemName: "arrow.counterclockwise")
                 .font(.system(size: 10.5, weight: .semibold))
                 .frame(width: 22, height: 22)
-                .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())
         .foregroundStyle(.secondary)
         .background(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                 .fill(Color.primary.opacity(0.07))
         )
         .help(l10n.s.mixerOutputDefault)
@@ -433,11 +443,11 @@ struct PanelInlineHideButton: View {
                 .foregroundStyle(isVisible ? Color.secondary : Color.accentColor)
                 .frame(width: 24, height: 22)
                 .background(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                         .fill((isVisible ? Color.primary : Color.accentColor).opacity(0.10))
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())
         .help(isVisible ? l10n.s.panelHideItem : l10n.s.panelShowItem)
         .accessibilityLabel(isVisible ? l10n.s.panelHideItem : l10n.s.panelShowItem)
     }
@@ -481,7 +491,7 @@ struct PanelHiddenItemRow: View {
         .padding(.vertical, 3)
         .padding(.horizontal, 6)
         .background(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                 .fill(Color.primary.opacity(0.035))
         )
     }

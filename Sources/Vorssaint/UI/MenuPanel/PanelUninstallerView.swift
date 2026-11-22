@@ -6,6 +6,7 @@ import SwiftUI
 /// Compact uninstaller flow for the menu panel. It reuses AppUninstaller so the
 /// scan and removal rules stay identical to the larger Settings page.
 struct PanelUninstallerView: View {
+    @Environment(\.panelToolHeaderHidden) private var toolHeaderHidden   // Custom
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var permissions = Permissions.shared
     @ObservedObject private var uninstaller = AppUninstaller.shared
@@ -19,7 +20,7 @@ struct PanelUninstallerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            header
+            if !toolHeaderHidden { header }   // Custom
             content
             UninstallerHomebrewLastLog(compact: true)
         }
@@ -82,12 +83,12 @@ struct PanelUninstallerView: View {
                 if uninstaller.phase == .scanning { uninstaller.reset() }
                 onClose()
             } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 14))
+                Image(systemName: "chevron.down")   // Custom: matches the dropdown arrows
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                     .frame(width: 22, height: 22)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(l10n.s.uninstallerCancel)
         }
     }
@@ -228,7 +229,7 @@ struct PanelUninstallerView: View {
                     .font(.system(size: 14))
                     .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .disabled(uninstaller.isRemovingWithHomebrew)
         }
     }
@@ -289,7 +290,7 @@ struct PanelUninstallerView: View {
             } label: {
                 Image(systemName: "folder")
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(l10n.s.cleanerRevealInFinder)
             .accessibilityLabel(l10n.s.cleanerRevealInFinder)
             Text(Self.byteString(item.size))

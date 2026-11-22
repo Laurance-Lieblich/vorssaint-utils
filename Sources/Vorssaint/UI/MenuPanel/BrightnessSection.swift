@@ -76,6 +76,7 @@ struct BrightnessSection: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 12)
                         .rotationEffect(.degrees(optionsExpanded ? 90 : 0))
+                .animation(PanelMotion.snappy, value: optionsExpanded)   // Custom
                     Text(l10n.s.keepAwakeOptions)
                         .font(.system(size: 11.5, weight: .semibold))
                         .foregroundStyle(.secondary)
@@ -83,7 +84,7 @@ struct BrightnessSection: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
 
             if optionsExpanded {
                 VStack(alignment: .leading, spacing: 8) {
@@ -204,7 +205,7 @@ struct MonitorSpeakerVolumeRow: View {
                         .foregroundStyle(muted ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
                         .frame(width: 16)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
                 .help(muted ? strings.unmute : strings.mute)
                 .accessibilityLabel("\(displayName): \(muted ? strings.unmute : strings.mute)")
             } else {
@@ -316,7 +317,7 @@ struct SoftwareDimmingButton: View {
             }
             .foregroundStyle(chosen ? Color.accentColor : Color.secondary)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())
         .disabled(service.isDisplayPending(display.id))
         .accessibilityLabel("\(display.name): \(title)")
     }
@@ -357,7 +358,7 @@ struct DisplayPowerButton: View {
                                                          : AnyShapeStyle(.green))
                         .frame(width: compact ? 16 : 20, height: 18)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
                 .disabled(!enabled)
                 .help(label)
                 .accessibilityLabel(label)

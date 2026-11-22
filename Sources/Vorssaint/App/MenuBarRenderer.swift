@@ -552,16 +552,17 @@ enum MenuBarRenderer {
                 if let power = snapshot.power,
                    let seconds = power.timeRemainingSeconds,
                    let value = BatteryTimeSupport.formatted(seconds: seconds) {
-                    groups.append([.metricBlock(label: "BAT",
+                    // Custom (Laurance): coconutBattery look: just the time, one line.
+                    groups.append([.metricBlock(label: "",
                                                 value: value,
-                                                minimumValue: "99h 59m",
+                                                minimumValue: "9h 59m",
                                                 style: style,
                                                 pressure: nil)])
                 } else if let power = snapshot.power,
                           power.hasBattery, !power.externalConnected, !power.isCharging {
-                    groups.append([.metricBlock(label: "BAT",
+                    groups.append([.metricBlock(label: "",
                                                 value: "...",
-                                                minimumValue: "99h 59m",
+                                                minimumValue: "9h 59m",
                                                 style: style,
                                                 pressure: nil)])
                 }
@@ -888,6 +889,12 @@ enum MenuBarRenderer {
         let pressureKey = pressure.map(String.init(describing:)) ?? "none"
         let cacheKey = "metric|\(label)|\(value)|\(minimumValue)|\(style)|\(pressureKey)|\(warning)" as NSString
         if let cached = blockImageCache.object(forKey: cacheKey) { return cached }
+        if label.isEmpty, pressure == nil {
+            let image = plainValueImage(value: value, minimumValue: minimumValue,
+                                        style: style, warning: warning)
+            blockImageCache.setObject(image, forKey: cacheKey, cost: blockImageCost(image))
+            return image
+        }
 
         let labelFont = NSFont.systemFont(ofSize: style == .readable ? 7.2 : 6.6, weight: .medium)
         let valueFont = NSFont.monospacedDigitSystemFont(ofSize: style == .readable ? 13.0 : 12.0,
@@ -930,6 +937,29 @@ enum MenuBarRenderer {
         image.isTemplate = false
         blockImageCache.setObject(image, forKey: cacheKey, cost: blockImageCost(image))
         return image
+    }
+
+    /// Custom (Laurance): a single line of text in the menu bar's own regular
+    /// system font, vertically centered, like coconutBattery's "5h 59m".
+    /// Used by metric blocks that have no label (battery time).
+    private static func plainValueImage(value: String,
+                                        minimumValue: String,
+                                        style: MenuBarBlockStyle,
+                                        warning: BatteryWarning) -> NSImage {
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 13.5, weight: .regular)
+        let sizing: [NSAttributedString.Key: Any] = [.font: font]
+        let valueSize = (value as NSString).size(withAttributes: sizing)
+        let reserved = (minimumValue as NSString).size(withAttributes: sizing)
+        let width = ceil(max(valueSize.width, reserved.width) + 2)
+        let height: CGFloat = style == .readable ? 23 : 21
+        return NSImage(size: NSSize(width: width, height: height), flipped: false) { _ in
+            var attrs = dynamicTextAttributes(font: font)
+            if let warningColor = nsColor(for: warning) { attrs[.foregroundColor] = warningColor }
+            (value as NSString).draw(at: NSPoint(x: (width - valueSize.width) / 2,
+                                                 y: ((height - valueSize.height) / 2).rounded()),
+                                     withAttributes: attrs)
+            return true
+        }
     }
 
     private static func usageBarBlockImage(label: String,

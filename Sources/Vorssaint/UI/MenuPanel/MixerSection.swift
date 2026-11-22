@@ -102,6 +102,7 @@ struct MixerSection: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 12)
                         .rotationEffect(.degrees(optionsExpanded ? 90 : 0))
+                .animation(PanelMotion.snappy, value: optionsExpanded)   // Custom
                     Text(l10n.s.keepAwakeOptions)
                         .font(.system(size: 11.5, weight: .semibold))
                         .foregroundStyle(.secondary)
@@ -109,7 +110,7 @@ struct MixerSection: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
 
             if optionsExpanded {
                 MixerOptionsControls(includeSharedAudioFeatures: !settingsMode)
@@ -712,10 +713,11 @@ struct MixerOptionsControls: View {
                         .font(.system(size: 8, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .rotationEffect(.degrees(showListChooser ? 90 : 0))
+                .animation(PanelMotion.snappy, value: showListChooser)   // Custom
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .accessibilityLabel(l10n.s.mixerVisibleApps)
             .accessibilityValue(mixer.hiddenApps.isEmpty
                                 ? l10n.s.mixerAllShown
@@ -1000,7 +1002,7 @@ private struct MixerRow: View {
                                 .foregroundStyle(isBoosting ? boostColor : Color.secondary)
                                 .frame(width: 14)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PanelPressStyle())
                         .help(l10n.s.mixerResetTooltip)
                         .opacity(isAtUnity ? 0 : 1)
                         .disabled(isAtUnity)
@@ -1015,7 +1017,7 @@ private struct MixerRow: View {
                                                  : Color.secondary)
                                 .frame(width: 16)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PanelPressStyle())
                     }
 
                     if app.supportsVolumeOverride {
@@ -1162,7 +1164,7 @@ struct EditableVolumePercent<Label: View>: View {
                     .frame(width: width, alignment: .trailing)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .opacity(isEditing ? 0 : 1)
             .allowsHitTesting(!isEditing)
             .accessibilityLabel("\(accessibilityLabel) \(currentPercent)%")

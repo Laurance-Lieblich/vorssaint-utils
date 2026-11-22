@@ -65,7 +65,7 @@ struct ClipboardEntryPreviewSidebar: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 20, height: 20)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(l10n.s.menuClose)
             .accessibilityLabel(l10n.s.menuClose)
         }
@@ -101,11 +101,11 @@ struct ClipboardEntryPreviewSidebar: View {
             .scrollContentBackground(.hidden)
             .padding(8)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                     .fill(Color.primary.opacity(0.045))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                     .strokeBorder(Color.accentColor.opacity(0.45), lineWidth: 1)
             )
             .padding(12)
@@ -139,7 +139,7 @@ struct ClipboardEntryPreviewSidebar: View {
                 ClipboardThumbnailImage(source: .stored(name: name),
                                         aspectRatio: entry.imageAspectRatio)
                     .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous))
             }
             Text("\(text.imageEntryLabel) · \(entry.imageDimensionsLabel)")
                 .font(.system(size: 10.5))
@@ -167,7 +167,7 @@ struct ClipboardEntryPreviewSidebar: View {
                 ClipboardThumbnailImage(source: .file(path: path),
                                         aspectRatio: ClipboardImageStore.imageAspectRatio(atPath: path))
                     .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous))
 
                 let dim = ClipboardImageStore.imageDimensionsLabel(atPath: path)
                 let size = ClipboardImageStore.fileSizeString(atPath: path)
@@ -202,7 +202,7 @@ struct ClipboardEntryPreviewSidebar: View {
                     .padding(8)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: PanelRadius.small, style: .continuous)
                             .fill(Color.primary.opacity(0.04))
                     )
             }
@@ -239,7 +239,7 @@ struct ClipboardEntryPreviewSidebar: View {
             }
             .padding(8)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: PanelRadius.small, style: .continuous)
                     .fill(Color.primary.opacity(0.04))
             )
 
@@ -251,7 +251,7 @@ struct ClipboardEntryPreviewSidebar: View {
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: PanelRadius.small, style: .continuous)
                         .fill(Color.primary.opacity(0.04))
                 )
         }

@@ -41,10 +41,11 @@ struct AudioPriorityDisclosure: View {
                             .foregroundStyle(.secondary)
                             .frame(width: 12)
                             .rotationEffect(.degrees(expanded ? 90 : 0))
+                .animation(PanelMotion.snappy, value: expanded)   // Custom
                     }
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
             }
 
             if expanded {
@@ -209,11 +210,11 @@ private struct PriorityDeviceList: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 4)
         .background(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                 .fill(isCurrent ? Color.accentColor.opacity(0.08) : Color.primary.opacity(0.035))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                 .stroke(isCurrent ? Color.accentColor.opacity(0.65) : Color.clear, lineWidth: 1)
         )
         .contentShape(Rectangle())
@@ -231,7 +232,7 @@ private struct PriorityDeviceList: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 28, height: 28)
                 .background(.regularMaterial,
-                            in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            in: RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous))
         }
         .accessibilityAction(named: Text(l10n.s.audioPriorityMoveUp)) {
             move(uid, by: -1)

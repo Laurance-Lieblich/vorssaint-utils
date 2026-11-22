@@ -215,11 +215,11 @@ struct NetworkSection: View {
                 .padding(.horizontal, 7)
                 .frame(height: 22)
                 .background(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                         .fill(Color.primary.opacity(0.10))
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())
         .fixedSize()
         .help("\(title) · \(speedInBits ? "bit/s → B/s" : "B/s → bit/s")")
         .accessibilityLabel(title)

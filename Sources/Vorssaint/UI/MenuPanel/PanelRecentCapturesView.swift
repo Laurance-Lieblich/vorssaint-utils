@@ -18,6 +18,7 @@ struct PanelRecentCapturesView: View {
 /// The same history surface is used by the menu panel and by the floating
 /// palette opened from editors and the Command Bar.
 struct RecentCapturesView: View {
+    @Environment(\.panelToolHeaderHidden) private var toolHeaderHidden   // Custom
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var history = RecentCaptureService.shared
     @Environment(\.notchPresentation) private var inNotch
@@ -44,7 +45,7 @@ struct RecentCapturesView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if notchSize == nil { header }
+            if notchSize == nil, !toolHeaderHidden { header }   // Custom
             content
         }
         .onAppear { history.reload() }
@@ -70,18 +71,18 @@ struct RecentCapturesView: View {
                     .font(.system(size: 11, weight: .semibold))
                     .frame(width: 22, height: 22)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(text.clear)
             .accessibilityLabel(text.clear)
             .disabled(visibleEntries.isEmpty)
             if let onClose {
                 Button(action: onClose) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 14))
+                    Image(systemName: "chevron.down")   // Custom: matches the dropdown arrows
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.secondary)
                         .frame(width: 22, height: 22)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
                 .help(l10n.s.uninstallerCancel)
                 .accessibilityLabel(l10n.s.uninstallerCancel)
             }
@@ -172,14 +173,14 @@ struct RecentCapturesView: View {
     @ViewBuilder
     private func preview(_ entry: RecentCaptureEntry) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                 .fill(Color.black.opacity(0.13))
             if let image = history.thumbnail(for: entry) {
                 Image(nsImage: image)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous))
             } else {
                 Image(systemName: entry.kind == .screenshot ? "photo" : "film")
                     .font(.system(size: 20, weight: .medium))
@@ -188,7 +189,7 @@ struct RecentCapturesView: View {
         }
         .frame(width: 104, height: 68)
         .overlay(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
         )
     }

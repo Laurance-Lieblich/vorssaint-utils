@@ -4,6 +4,7 @@
 import SwiftUI
 
 struct PanelWindowLayoutView: View {
+    @Environment(\.panelToolHeaderHidden) private var toolHeaderHidden   // Custom
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var permissions = Permissions.shared
     @ObservedObject private var service = WindowLayoutService.shared
@@ -30,7 +31,7 @@ struct PanelWindowLayoutView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            header
+            if !toolHeaderHidden { header }   // Custom
             intro
             actionGroup(title: text.halves, actions: [.leftHalf, .rightHalf, .topHalf, .bottomHalf, .centerHalf])
             actionGroup(title: text.thirds, actions: [
@@ -85,16 +86,16 @@ struct PanelWindowLayoutView: View {
                     .foregroundStyle(editingActions ? Color.accentColor : Color.secondary)
                     .frame(width: 22, height: 22)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(l10n.s.menuSettings)
             .accessibilityLabel(l10n.s.menuSettings)
             Button(action: onClose) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 14))
+                Image(systemName: "chevron.down")   // Custom: matches the dropdown arrows
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                     .frame(width: 22, height: 22)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(l10n.s.uninstallerCancel)
             .accessibilityLabel(l10n.s.menuClose)
         }

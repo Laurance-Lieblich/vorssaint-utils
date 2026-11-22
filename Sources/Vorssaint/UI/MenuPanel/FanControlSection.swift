@@ -16,13 +16,30 @@ struct FanControlSection: View {
         TemperatureUnit.celsius.rawValue
     var collapsible = true
     var fallbackFanSpeeds: [Double] = []
+    /// Custom: true when shown inside the System section rather than as its own
+    /// panel section. Drops the collapsible section header for a small label.
+    var embedded = false
 
     private var strings: FanControlFeatureStrings {
         FeatureStrings.fanControl(l10n.language)
     }
 
     var body: some View {
-        PanelSection(.fanControl, title: strings.title, collapsible: collapsible) {
+        if embedded {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(strings.title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                card
+            }
+        } else {
+            PanelSection(.fanControl, title: strings.title, collapsible: collapsible) {
+                card
+            }
+        }
+    }
+
+    private var card: some View {
             FanControlCardContent(strings: strings,
                                   betaLabel: l10n.s.betaBadge,
                                   snapshot: service.snapshot,
@@ -42,7 +59,6 @@ struct FanControlSection: View {
                 .onAppear { service.panelDidAppear() }
                 .onDisappear { service.panelDidDisappear() }
                 .onChange(of: resume) { _, _ in service.resumePreferenceDidChange() }
-        }
     }
 
     private var modeBinding: Binding<FanControlMode> {

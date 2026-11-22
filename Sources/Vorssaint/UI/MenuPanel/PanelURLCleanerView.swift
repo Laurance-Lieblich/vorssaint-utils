@@ -5,6 +5,7 @@ import AppKit
 import SwiftUI
 
 struct PanelURLCleanerView: View {
+    @Environment(\.panelToolHeaderHidden) private var toolHeaderHidden   // Custom
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var cleaner = URLCleanerService.shared
     @AppStorage(DefaultsKey.urlCleanerEnabled) private var autoClean = false
@@ -26,7 +27,7 @@ struct PanelURLCleanerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            header
+            if !toolHeaderHidden { header }   // Custom
             autoCleanToggle
             manualCleaner
         }
@@ -40,12 +41,12 @@ struct PanelURLCleanerView: View {
                 .font(.system(size: 12, weight: .semibold))
             Spacer()
             Button(action: onClose) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 14))
+                Image(systemName: "chevron.down")   // Custom: matches the dropdown arrows
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                     .frame(width: 22, height: 22)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(l10n.s.uninstallerCancel)
         }
     }
@@ -88,7 +89,7 @@ struct PanelURLCleanerView: View {
                         .foregroundStyle(Color.secondary.opacity(input.isEmpty ? 0.35 : 1))
                         .frame(width: 20, height: 20)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
                 .help(l10n.s.urlCleanerClearButton)
                 .disabled(input.isEmpty)
             }

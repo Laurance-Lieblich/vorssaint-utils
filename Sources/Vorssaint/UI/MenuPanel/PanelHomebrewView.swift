@@ -5,6 +5,7 @@ import AppKit
 import SwiftUI
 
 struct PanelHomebrewView: View {
+    @Environment(\.panelToolHeaderHidden) private var toolHeaderHidden   // Custom
     private static let packageListTopID = "panel-homebrew-package-list-top"
 
     @ObservedObject private var l10n = L10n.shared
@@ -20,7 +21,7 @@ struct PanelHomebrewView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            header
+            if !toolHeaderHidden { header }   // Custom
             if homebrew.brewPath == nil {
                 missingState
             } else {
@@ -80,12 +81,12 @@ struct PanelHomebrewView: View {
                 .font(.system(size: 12, weight: .semibold))
             Spacer()
             Button(action: onClose) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 14))
+                Image(systemName: "chevron.down")   // Custom: matches the dropdown arrows
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                     .frame(width: 22, height: 22)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(l10n.s.uninstallerCancel)
         }
     }
@@ -374,7 +375,7 @@ struct PanelHomebrewView: View {
                 .contentShape(Rectangle())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             if activeStatus(for: package) != nil {
                 ProgressView()
                     .controlSize(.mini)
@@ -393,7 +394,7 @@ struct PanelHomebrewView: View {
                         .frame(width: 22, height: 20)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
                 .disabled(homebrew.isBusy)
                 .help(l10n.s.homebrewInstall)
                 .accessibilityLabel(l10n.s.homebrewInstall)
@@ -402,10 +403,10 @@ struct PanelHomebrewView: View {
         .padding(.horizontal, 7)
         .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                 .fill(selected(package) ? Color.accentColor.opacity(0.14) : Color.primary.opacity(0.035))
         )
-        .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous))
         .contextMenu {
             packageContextMenu(package)
         }
@@ -422,7 +423,7 @@ struct PanelHomebrewView: View {
                 .frame(width: 20, height: 18)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())
         .disabled(homebrew.isBusy)
         .help("\(l10n.s.homebrewUpgrade): \(update.versionSummary)")
         .accessibilityLabel(l10n.s.homebrewUpgrade)

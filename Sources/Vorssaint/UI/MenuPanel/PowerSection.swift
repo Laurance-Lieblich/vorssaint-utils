@@ -398,12 +398,13 @@ private struct EnergyAppsBreakdown: View {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 8, weight: .semibold))
                         .rotationEffect(.degrees(expanded ? 90 : 0))
+                .animation(PanelMotion.snappy, value: expanded)   // Custom
                     Text(l10n.s.energyAppsTitle)
                     Spacer()
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             if expanded {
                 if rows.isEmpty {
                     Text(loading ? l10n.s.breakdownMeasuring : l10n.s.energyAppsIdle)

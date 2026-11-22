@@ -985,11 +985,12 @@ struct CleanerView: View {
 /// shared header and close affordance of the other hosted utilities.
 struct PanelCleanerView: View {
     @ObservedObject private var l10n = L10n.shared
+    @Environment(\.panelToolHeaderHidden) private var toolHeaderHidden   // Custom
     var onClose: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+            if !toolHeaderHidden { HStack(spacing: 8) {   // Custom
                 Image(systemName: "sparkle")
                     .font(.system(size: 13, weight: .semibold))
                 Text(l10n.s.cleanerName)
@@ -1008,7 +1009,7 @@ struct PanelCleanerView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(l10n.s.menuClose)
-            }
+            } }
             CleanerView(compact: true)
         }
         .padding(2)

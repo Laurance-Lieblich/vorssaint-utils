@@ -183,7 +183,7 @@ struct DiskSection: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             if disk.canEject {
                 DiskSelectorEjectButton(state: protection.state(for: disk),
                                         idleHelp: l10n.s.diskEject,
@@ -196,7 +196,7 @@ struct DiskSection: View {
             }
         }
         .background(selectorBackground(for: disk))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous))
     }
 
     private func selectorBackground(for disk: DiskDeviceReading) -> some ShapeStyle {
@@ -215,6 +215,7 @@ struct DiskSection: View {
                 VStack(alignment: .leading, spacing: 5) {
                     diskTitleRow(disk)
                     DiskUsageBar(fraction: disk.usedFraction)
+                        .id(disk.id)   // Custom: a new bar per disk, so switching disks never animates it across
                     HStack(spacing: 6) {
                         Text("\(MetricFormat.percent(disk.usedFraction)) \(l10n.s.diskUsed)")
                         Spacer()
@@ -525,7 +526,7 @@ private struct DiskSelectorEjectButton: View {
                 .background(Circle().fill(Color.primary.opacity(hovering && !busy ? 0.1 : 0)))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())
         .disabled(busy)
         .onHover { hovering = $0 }
         .help(help)

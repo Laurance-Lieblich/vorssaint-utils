@@ -98,7 +98,7 @@ struct ClipboardQuickPanelView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 22, height: 22)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelPressStyle())
             .help(l10n.s.menuClose)
             .accessibilityLabel(l10n.s.menuClose)
         }
@@ -465,13 +465,13 @@ private struct QuickEntryView: View, Equatable {
         .padding(.vertical, 6)
         .frame(minHeight: 48)
         .background(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                 .fill(rowBackground(isSelected: isSelected,
                                     isBatchSelected: isBatchSelected,
                                     isHovered: isHovered))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: PanelRadius.control, style: .continuous)
                 .strokeBorder(isBatchSelected ? Color.accentColor.opacity(0.38)
                               : isSelected ? Color.accentColor.opacity(0.24) : Color.clear,
                               lineWidth: 1)
@@ -513,7 +513,7 @@ private struct QuickEntryView: View, Equatable {
                           isBatchSelected: isBatchSelected,
                           isHovered: isHovered)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelPressStyle())
         .help(isBatchSelected ? text.unselectMultiple : text.selectMultiple)
     }
 
@@ -604,7 +604,7 @@ private struct QuickEntryView: View, Equatable {
                     ClipboardThumbnailImage(source: .stored(name: name),
                                             aspectRatio: entry.imageAspectRatio)
                         .frame(maxWidth: pictureMaxSize.width, maxHeight: pictureMaxSize.height)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: PanelRadius.small, style: .continuous))
                 }
                 SearchHighlightText.text("\(text.imageEntryLabel) · \(entry.imageDimensionsLabel)",
                                          tokens: tokens, fontSize: 11.5)
@@ -621,7 +621,7 @@ private struct QuickEntryView: View, Equatable {
                     ClipboardThumbnailImage(source: .file(path: path),
                                             aspectRatio: ClipboardImageStore.imageAspectRatio(atPath: path))
                         .frame(maxWidth: pictureMaxSize.width, maxHeight: pictureMaxSize.height)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: PanelRadius.small, style: .continuous))
                     VStack(alignment: .leading, spacing: 2) {
                         SearchHighlightText.text(entry.fileNames.first ?? entry.preview, tokens: tokens, fontSize: 12)
                             .font(.system(size: 12))
@@ -668,9 +668,9 @@ private struct QuickEntryView: View, Equatable {
                         Image(systemName: "pencil")
                             .font(.system(size: 10.5, weight: .semibold))
                             .frame(width: 24, height: 24)
-                            .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 6))
+                            .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: PanelRadius.small))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PanelPressStyle())
                     .help(text.edit)
                     .accessibilityLabel(text.edit)
                 }
@@ -680,9 +680,9 @@ private struct QuickEntryView: View, Equatable {
                     Image(systemName: "doc.on.doc")
                         .font(.system(size: 10.5, weight: .semibold))
                         .frame(width: 24, height: 24)
-                        .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 6))
+                        .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: PanelRadius.small))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelPressStyle())
                 .help(text.copy)
                 Menu {
                     entryActions(entry)
@@ -690,7 +690,7 @@ private struct QuickEntryView: View, Equatable {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 11, weight: .semibold))
                         .frame(width: 24, height: 24)
-                        .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 6))
+                        .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: PanelRadius.small))
                 }
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
