@@ -45,6 +45,7 @@ final class AppSwitcherLink: ObservableObject {
 
     @Published var size: Size = .medium
     @Published var includeMinimized = false
+    @Published var showAllDesktops = false
     @Published var showPreviews = true
     @Published var previewDelay: Double = 0.08
     @Published var showDesktopNameInSwitcher = false
@@ -111,6 +112,7 @@ final class AppSwitcherLink: ObservableObject {
         guard let d = store else { return }
         size = Size(rawValue: d.string(forKey: "switcherSize") ?? "") ?? .medium
         includeMinimized = d.bool(forKey: "includeMinimized")
+        showAllDesktops = d.bool(forKey: "showAllDesktops")
         showPreviews = d.object(forKey: "showPreviews") as? Bool ?? true
         let delay = d.object(forKey: "previewDelay") as? Double
         previewDelay = (delay == nil || delay == 0.25) ? 0.08 : delay!   // mirrors App Switcher's default
@@ -279,6 +281,7 @@ struct AppSwitcherPanelSection: View {
                 .controlSize(.small)
                 .frame(width: 170)
             }
+            row("Apps from all desktops", isOn: link.binding(\.showAllDesktops, key: "showAllDesktops"))
             row("Window previews", isOn: link.binding(\.showPreviews, key: "showPreviews"))
             row("Include minimized windows",
                 isOn: link.binding(\.includeMinimized, key: "includeMinimized"))
@@ -376,6 +379,9 @@ struct AppSwitcherLinkSettings: View {
                     ForEach(AppSwitcherLink.Size.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
+                Toggle("Show apps from all desktops",
+                       isOn: link.binding(\.showAllDesktops, key: "showAllDesktops"))
+                    .help("Off: only apps with windows on this desktop. On: every open app, like the macOS switcher.")
                 Toggle("Include minimized windows",
                        isOn: link.binding(\.includeMinimized, key: "includeMinimized"))
             }
