@@ -29,12 +29,14 @@ trap 'exit 1' INT TERM HUP
 # Flags: --dev builds the local-only "Vorssaint (Developer)" variant (its own
 # bundle id, so it coexists with the official app); --install puts it in /Applications.
 DEV=0
+RELEASE_OPT=0
 INSTALL=0
 TEST=0
 TEST_ARGS=()
 for arg in "$@"; do
     case "$arg" in
         --dev)     DEV=1 ;;
+        --release) RELEASE_OPT=1 ;;
         --install) INSTALL=1 ;;
         --test)    TEST=1 ;;
         --test-suite=*) TEST=1; TEST_ARGS+=("--suite=${arg#*=}") ;;
@@ -49,6 +51,11 @@ if (( DEV )); then
     BUILD_VARIANT_FLAGS=(-D VORSSAINT_DEVELOPMENT)
     APP_OPTIMIZATION_FLAGS=(-Onone)
     BUILD_CONFIGURATION="debug"
+    # Custom: --dev --release builds the Developer variant optimized, like the official app.
+    if (( RELEASE_OPT )); then
+        APP_OPTIMIZATION_FLAGS=(-O)
+        BUILD_CONFIGURATION="release"
+    fi
 else
     APP_NAME="Vorssaint"
     EXECUTABLE="Vorssaint"

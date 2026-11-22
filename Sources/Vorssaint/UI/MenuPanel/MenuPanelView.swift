@@ -103,7 +103,11 @@ struct MenuPanelView: View {
     private var maxHeight: CGFloat {
         let anchored = PanelInteractionState.shared.anchorScreen
             .flatMap { anchor in anchor.isStillAttached ? anchor : nil }
-        return max(360, ((anchored ?? NSScreen.withMenuBar)?.visibleFrame.height ?? 760) - 28)
+        // Custom fix: 28 pt was not enough clearance. A panel capped at exactly
+        // visibleFrame - 28 left the popover window 2 pt short of the usable
+        // height, which AppKit still treated as "doesn't fit below the icon" and
+        // opened beside it (shifted far left). 64 pt keeps it safely under.
+        return max(360, ((anchored ?? NSScreen.withMenuBar)?.visibleFrame.height ?? 760) - 64)
     }
 
     var body: some View {
