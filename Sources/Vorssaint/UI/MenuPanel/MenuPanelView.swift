@@ -67,6 +67,15 @@ final class MenuPanelFocus: ObservableObject {
 /// the system monitor.
 struct MenuPanelView: View {
     @Namespace private var tabNamespace   // Custom: sliding tab highlight
+    /// Custom: false while the panel is opening, true a moment later (see monitorNeeds).
+    @State private var monitorAllSections = false
+
+    /// Custom: start reading every monitor section once the panel is on screen, so switching
+    /// tabs never waits for data, without slowing the panel's opening.
+    private func warmAllSections() {
+        monitorAllSections = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { monitorAllSections = true }
+    }
     var notchSize: CGSize? = nil
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var updates = UpdateService.shared
@@ -125,9 +134,11 @@ struct MenuPanelView: View {
         .onAppear {
             applyFocus(panelFocus.request)
             KeepAwakeManager.shared.refreshPasswordlessStatus()
+            warmAllSections()   // Custom
             syncMonitorSampling()
         }
         .onReceive(NotificationCenter.default.publisher(for: .menuPanelWillShow)) { _ in
+            warmAllSections()   // Custom
             syncMonitorSampling()
         }
         .onDisappear {
@@ -157,8 +168,10 @@ struct MenuPanelView: View {
         // only when its tab was opened, so its rows arrived a moment later and the
         // panel resized a second time: the jump into Energy, Disks, etc. With the
         // data already there, any tab switch, in any section order, resizes once.
+        // Opening the panel only reads the section on screen (as upstream does), so it appears
+        // instantly; a moment later every monitor section is read (see warmAllSections).
         var needs = SystemMonitorPanelNeeds()
-        for id in visibleSections {
+        for id in (monitorAllSections ? visibleSections : [activeSection]) {
             switch id {
             case .system: needs.system = true
             case .network: needs.network = true

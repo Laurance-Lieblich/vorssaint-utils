@@ -1065,19 +1065,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // it has to be known before the content is asked for its size.
         PanelInteractionState.shared.anchorScreen = savedAnchor?.screen ?? statusScreen(for: button)
         statusController.setMicBadgeHeld(true)
-        if !animate {
-            popover.animates = false
-        }
+        // Custom (Laurance): the system's open animation (~0.2 s) is replaced by our own fade
+        // at half that, below. Closing keeps the system animation.
+        popover.animates = false
         MenuPanelFocus.shared.setPopoverVisible(true)
         let showStartedAt = ProcessInfo.processInfo.systemUptime
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         let showDuration = ProcessInfo.processInfo.systemUptime - showStartedAt
         MenuPanelFocus.shared.setPopoverVisible(popover.isShown)
-        if !animate {
-            popover.animates = true
-        }
+        popover.animates = true
         if popover.isShown, let window = popover.contentViewController?.view.window {
             configurePopoverWindow(window)
+            if animate {
+                window.alphaValue = 0
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.1
+                    context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                    window.animator().alphaValue = 1
+                }
+            }
             window.contentView?.layoutSubtreeIfNeeded()
             window.makeKey()
             popoverIsClosing = false

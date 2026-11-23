@@ -46,6 +46,8 @@ final class AppSwitcherLink: ObservableObject {
     @Published var size: Size = .medium
     @Published var includeMinimized = false
     @Published var showAllDesktops = false
+    /// Bundle IDs of pinned apps (pinned with P in the switcher).
+    @Published private(set) var pinnedApps: [String] = []
     @Published var showPreviews = true
     @Published var previewDelay: Double = 0.08
     @Published var showDesktopNameInSwitcher = false
@@ -113,6 +115,7 @@ final class AppSwitcherLink: ObservableObject {
         size = Size(rawValue: d.string(forKey: "switcherSize") ?? "") ?? .medium
         includeMinimized = d.bool(forKey: "includeMinimized")
         showAllDesktops = d.bool(forKey: "showAllDesktops")
+        pinnedApps = d.stringArray(forKey: "pinnedApps") ?? []
         showPreviews = d.object(forKey: "showPreviews") as? Bool ?? true
         let delay = d.object(forKey: "previewDelay") as? Double
         previewDelay = (delay == nil || delay == 0.25) ? 0.08 : delay!   // mirrors App Switcher's default
@@ -139,6 +142,21 @@ final class AppSwitcherLink: ObservableObject {
     func binding(_ keyPath: ReferenceWritableKeyPath<AppSwitcherLink, Bool>, key: String) -> Binding<Bool> {
         Binding(get: { self[keyPath: keyPath] },
                 set: { self[keyPath: keyPath] = $0; self.write($0, key) })
+    }
+
+    func unpin(_ bundleID: String) {
+        pinnedApps.removeAll { $0 == bundleID }
+        write(pinnedApps, "pinnedApps")
+    }
+
+    static func appName(_ bundleID: String) -> String {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return bundleID }
+        return FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
+    }
+
+    static func appIcon(_ bundleID: String) -> NSImage? {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return nil }
+        return NSWorkspace.shared.icon(forFile: url.path)
     }
 
     var sizeBinding: Binding<Size> {
@@ -287,6 +305,18 @@ struct AppSwitcherPanelSection: View {
                 isOn: link.binding(\.includeMinimized, key: "includeMinimized"))
             row("Desktop name popup", isOn: link.binding(\.showDesktopPopup, key: "showDesktopPopup"))
             Divider()
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Pinned")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.primary.opacity(0.74))
+                Spacer(minLength: 8)
+                Text(link.pinnedApps.isEmpty
+                     ? "None, press P in the switcher"
+                     : link.pinnedApps.map(AppSwitcherLink.appName).joined(separator: ", "))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+            }
             Button {
                 link.openSettings()
             } label: {
@@ -412,6 +442,29 @@ struct AppSwitcherLinkSettings: View {
                 Text("Desktops")
             } footer: {
                 Text("Desktop names themselves are edited in App Switcher's own Settings.")
+            }
+
+            Section {
+                if link.pinnedApps.isEmpty {
+                    Text("No pinned apps yet.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(link.pinnedApps, id: \.self) { bundleID in
+                        HStack(spacing: 10) {
+                            if let icon = AppSwitcherLink.appIcon(bundleID) {
+                                Image(nsImage: icon).resizable().frame(width: 22, height: 22)
+                            }
+                            Text(AppSwitcherLink.appName(bundleID))
+                            Spacer()
+                            Button("Unpin") { link.unpin(bundleID) }
+                                .controlSize(.small)
+                        }
+                    }
+                }
+            } header: {
+                Text("Pinned apps")
+            } footer: {
+                Text("Pinned apps always show in the switcher, from any desktop, after a thin divider. Pin or unpin with P while an app is selected in the switcher, or the pin that appears on hover.")
             }
 
             Section("Menu bar") {
