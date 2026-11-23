@@ -44,6 +44,8 @@ enum PanelRadius {
 /// system's own controls, never floaty.
 enum PanelMotion {
     static let snappy = Animation.snappy(duration: 0.24, extraBounce: 0.02)
+    /// The tab highlight sliding between panel sections: quick, no overshoot.
+    static let tab = Animation.snappy(duration: 0.14, extraBounce: 0)
 }
 
 /// Custom (Laurance): Apple-style press feedback for every panel button: a
@@ -103,9 +105,10 @@ private struct SettingsPageEntranceModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(shown ? 1 : 0)
-            .offset(y: shown ? 0 : 6)
+            .offset(y: shown ? 0 : 3)
             .onAppear {
-                withAnimation(.easeOut(duration: 0.2)) { shown = true }
+                // Half the previous 0.2 s, matching the panel's faster opening.
+                withAnimation(.easeOut(duration: 0.1)) { shown = true }
             }
     }
 }

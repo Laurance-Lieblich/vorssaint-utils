@@ -441,7 +441,7 @@ struct MenuPanelView: View {
                 .accessibilityAddTraits(isActive ? .isSelected : [])
             }
         }
-        .animation(PanelMotion.snappy, value: activeSection)   // Custom: slides the highlight only
+        .animation(PanelMotion.tab, value: activeSection)   // Custom: slides the highlight only
         .padding(4)
         .background(
             RoundedRectangle(cornerRadius: PanelRadius.control + 4, style: .continuous)

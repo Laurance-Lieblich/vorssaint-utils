@@ -165,8 +165,6 @@ struct SettingsView: View {
                 detail
                     .settingsSectionFocus(for: router.page)
                     .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
-                    .settingsPageEntrance()   // Custom: pages settle in when switching
-                    .id(router.page)
             }
         }
         .navigationSplitViewStyle(.balanced)
